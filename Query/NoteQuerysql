@@ -1,0 +1,198 @@
+-- ▼ NoteDAO
+
+--list			    특정 등록번호의 여행노트 리스트 조회
+SELECT NOTE_NUM, NOTE_TITLE, NOTE_STARTDATE, NOTE_LASTDATE, NOTE_DATE
+FROM NOTE N
+WHERE EXISTS ( SELECT 1
+                               FROM NOTED_CARD NC
+                               WHERE NC.NOTE_NUM = N.NOTE_NUM )
+                   AND N.SIGN_NUM = 124 ;
+
+--insert   		여행노트 추가
+INSERT INTO NOTE(NOTE_NUM, NOTE_TITLE, NOTE_STARTDATE, NOTE_LASTDATE, REGION_NUM, NOTE_COMPANY, NOTE_BUDGET, SIGN_NUM)
+VALUES(NOTE_SEQ.NEXTVAL, '제목', TO_DATE('2022-12-30','YYYY-MM-DD'),TO_DATE('2022-12-31','YYYY-MM-DD'), 1, 3, 150000,1);
+
+--update		해당 여행노트 수정 
+UPDATE NOTE
+SET NOTE_TITLE = '제목', NOTE_STARTDATE =TO_DATE('2022-12-31','YYYY-MM-DD') , NOTE_LASTDATE =TO_DATE('2023-01-01','YYYY-MM-DD')
+  , REGION_NUM = 2, NOTE_COMPANY=2, NOTE_BUDGET=50000
+WHERE NOTE_NUM = 1;
+
+-- delete			해당 여행노트 삭제
+-- 여행카드와 여행노트의 바인딩을 삭제하고 여행노트 테이블에서 데이터를 삭제하는 프로시저 필요
+-- ▼ 프로시저 실행문 (PRC_NOTE_DELETE)
+EXEC PRC_NOTE_DELETE(1);
+
+-- note 			특정 여행노트 번호를 이용해 여행노트 조회 (열람)
+SELECT N.NOTE_TITLE, N.NOTE_STARTDATE, N.NOTE_LASTDATE, R.REGION_NAME, N.NOTE_COMPANY,N.NOTE_BUDGET
+FROM NOTE N JOIN REGION R 
+ON N.REGION_NUM = R.REGION_NUM
+WHERE N.NOTE_NUM = 1;
+
+-- 특정 여행노트 번호에 포함된 카드 조회
+-- ▼ 뷰 조회문 (VIEW_NOTED_CARD_SEARCH)
+SELECT NOTE_NUM, LAT, LNG, ZIPCODE, ADDRESS, SADDRESS, LOCATION
+     , BUDGET, CARD_COMMENT, IMG1, IMG2, IMG3, VISITDATE, TIME
+FROM VIEW_NOTED_CARD_SEARCH
+WHERE NOTE_NUM = 1;
+
+-- 특정 여행카드에 포함된 예산 내역 조회
+SELECT PTYPE_NUM, NVL(PAY_NAME, ''), PAY_AMOUNT
+FROM PAY
+WHERE CARD_NUM = 1;
+
+
+/*노트는 조회해왔지만, 여러개의 카드들은 조회해오지 못한 상황, 프로시저..? 뷰...? 쿼리문 두개날리기...?*/
+
+
+-- notedCardInsert 	특정 여행노트 번호에에 여행카드를 바인딩 처리
+INSERT INTO NOTED_CARD(NCARD_NUM, NOTE_NUM, CARD_NUM) VALUES(NCARD_SEQ.NEXTVAL, 1, 1);
+
+
+--------------------------------------------------------------------------------
+-- CardDAO
+/*
+-- insert 		여행카드 추가
+-- update		여행카드 수정 (‘여행노트에서 여행카드 수정’ 접근)
+-- delete 		여행카드 삭제	(‘여행노트에 포함된 카드삭제와 여행카드 삭제?)
+-- (스토리보드 상에서 어디서 삭제되는걸 뜻하는지..?)
+-- userCardList		특정 등록번호가 작성한 여행카드 리스트 조회 해줄 메소드
+-- card			특정 여행카드 번호를 사용해 조회 메소드
+
+-- cReportInsert 	여행카드 신고 (프로필의 공개된 카드만)
+-- cStatusInsert		여행카드 신고처리 
+
+-- cardSearchList	전체 검색에서 특정 키워드로 카드 리스트 조회
+
+-- payList		특정 카드번호에 포함된 지출 내역 조회 리스트
+-- payInsert		특정 카드번호에 포함된 지출 내역 추가
+-- payUpdate		특정 카드번호에 포함된 지출 내역 수정
+-- payDelete		특정 카드번호에 포함된 지출 내역 삭제
+
+-- scrapList 		스크랩 리스트
+-- scrapInsert 		스크랩 추가
+-- scrapDelete 		스크랩 삭제
+*/
+-- insert 		여행카드 추가
+INSERT INTO CARD(CARD_NUM, SIGN_NUM, CARD_LAT, CARD_LNG, CARD_ZIPCODE, CARD_ADDRESS, CARD_SADDRESS, CARD_LOCATION, CARD_BUDGET
+, CARD_COMMENT, CARD_IMG1, CARD_IMG2, CARD_IMG3, CARD_VISITDATE, OPEN_NUM, CARD_TIME)
+VALUES(CARD_SEQ.NEXTVAL, 등록번호, 위도,  경도, 우편번호, '주소', '상세주소', '장소명', 예산
+, '메모', '사진1', '사진2', '사진3', TO_DATE('방문날짜', 'YYYY-MM-DD'), 공개여부, '시간');
+
+-- update card_date     여행노트 최종 저장 시 여행카드의 생성일 업데이트
+UPDATE CARD
+SET CARD_DATE = SYSDATE
+WHRER CARD_NUM = 카드번호;
+
+-- update		여행카드 수정 (‘여행노트에서 여행카드 수정’ 접근)
+UPDATE CARD
+SET CARD_LAT= 37.55655 , CARD_LNG= 126.919550
+      , CARD_ZIPCODE= 12222, CARD_ADDRESS= '중랑구', CARD_SADDRESS= '신내동 묵동', CARD_LOCATION= '집'
+      , CARD_BUDGET= 50000, CARD_COMMENT= '스위트홈'
+      , CARD_IMG1= '경로1', CARD_IMG2= '경로2', CARD_IMG3= '경로3'
+      , CARD_VISITDATE= TO_DATE('방문일', 'YYYY-MM-DD'),  CARD_TIME = '시간', OPEN_NUM = 1
+WHERE CARD_NUM = 1;
+
+
+-- delete 		여행카드 삭제
+-- 최종공개번호가 없을 경우 삭제 / 최종공개번호가 있을 경우 바인딩만 삭제하는 프로시저 필요
+-- ▼ 프로시저 실행문 (PRC_CARD_DELETE)
+EXEC PRC_CARD_DELETE(1);
+
+SELECT *
+FROM NOTED_CARD;
+
+SELECT *
+FROM CARD;
+
+COMMIT;
+
+-- userCardList		특정 등록번호가 작성한 여행카드 리스트 조회 해줄 메소드
+SELECT CARD_NUM, CARD_LOCATION, CARD_BUDGET, CARD_DATE
+FROM CARD
+WHERE SIGN_NUM = 등록번호
+ORDER BY CARD_DATE;
+
+
+-- card			특정 여행카드 번호를 사용해 조회 메소드
+SELECT  CARD_LAT, CARD_LNG, CARD_ZIPCODE, CARD_ADDRESS, CARD_SADDRESS, CARD_LOCATION, CARD_BUDGET
+             , CARD_COMMENT, CARD_IMG1, CARD_IMG2, CARD_IMG3, CARD_VISITDATE, OPEN_NUM
+FROM CARD  
+WHERE CARD_NUM = 1;
+
+
+-- cReportInsert 	여행카드 신고 (프로필의 공개된 카드만)
+INSERT INTO CARD_REPORT(CREPORT_NUM, SIGN_NUM, CARD_NUM, REASON_NUM, CREPORT_TITLE, CREPORT_CONTENT)
+VALUES(CREPORT.NEXTVAL, 등록번호, 카드번호, 사유번호, '신고제목', '신고내용');
+
+-- cStatusInsert		여행카드 신고처리 
+--프로시저로 묶여서 NULL값을 가지고 생성해야하는지..?
+INSERT INTO CREPORT_STATUS(CSTATUS_NUM, ADMIN_NUM, CREPORT_NUM)
+VALUES(1, 1, 1);
+
+-- cardSearchList	전체 검색에서 특정 키워드로 카드 리스트 조회---------------------------------------------
+--여행카드는 제목이 없는데 무엇을 토대로 조회하는지...? (장소명..?)
+SELECT CARD_LOCATION, CARD_TIME, CARD_BUDGET, CARD_BUDGET, CARD_DATE
+FROM CARD 
+WHERE CARD_LOCATION LIKE = '%?%';
+
+--------------------------------------------------------------------------------------------------------------
+
+-- payList      특정 카드번호에 포함된 지출 내역 조회 리스트
+SELECT T.PTYPE_NAME, P.PAY_NAME, P.PAY_AMOUNT
+FROM PAY P JOIN CARD C
+ON P.CARD_NUM = C.CARD_NUM
+JOIN PAY_TYPE T
+ON P.PTYPE_NUM = T.PTYPE_NUM
+WHERE C.CARD_NUM=?;
+
+-- payInsert      특정 카드번호에 포함된 지출 내역 추가
+INSERT INTO PAY(PAY_NUM, CARD_NUM, PTYPE_NUM, PAY_NAME, PAY_AMOUNT)
+VALUES (PAY_SEQ, 1, 1, '점심', 50000);
+-- payUpdate      특정 카드번호에 포함된 지출 내역 수정
+UPDATE PAY
+SET PTYPE_NUM=2, PAY_NAME='저녁', PAY_AMOUNT=100000
+WHERE PAY_NUM = 1;
+
+-- payDelete      특정 카드번호에 포함된 지출 내역 삭제
+DELETE
+FROM PAY
+WHERE PAY_NUM = 1;
+
+-- scrapList       스크랩 리스트
+SELECT S.CARD_NUM, C.CARD_LOCATION, C.CARD_VISITDATE, NVL(C.CARD_BUDGET, '0') AS CARD_BUDGET
+FROM SCRAP S, CARD C
+WHERE S.CARD_NUM = C.CARD_NUM
+    AND S.SIGN_NUM = 134;
+    
+
+-- scrapInsert       스크랩 추가
+INSERT INTO SCRAP(SCRAP_NUM, CARD_NUM, SIGN_NUM) 
+VALUES(SCRAP_SEQ.NEXTVAL, 6, 124);
+
+-- scrapDelete       스크랩 삭제
+DELETE 
+FROM SCRAP
+WHERE SCRAP_NUM = 1;
+
+SELECT PTYPE_NUM, NVL(PAY_NAME, ''), PAY_AMOUNT
+FROM PAY
+WHERE CARD_NUM = ;
+
+SELECT *
+FROM PAY_TYPE;
+--==>>
+/*
+1   카드
+2   현금
+3   기타
+*/
+
+-- cardSearchList   전체 검색에서 특정 키워드로 카드 리스트 조회---------------------------------------------
+--여행카드는 제목이 없는데 무엇을 토대로 조회하는지...? (장소명..?)
+SELECT CARD_NUM, CARD_LOCATION, CARD_VISITDATE, NVL(CARD_BUDGET, '') AS CARD_BUDGET
+FROM CARD
+WHERE CARD_LOCATION LIKE '%쌍용%' OR CARD_COMMENT LIKE '%아%' OR CARD_ADDRESS LIKE '%층%';
+
+SELECT * 
+FROM CARD;
