@@ -1,0 +1,93 @@
+-- ▼ ServiceDAO
+
+-- noticeList		공지사항 리스트
+SELECT NOTICE_NUM, NOTICE_TITLE, NOTICE_DATE
+FROM NOTICE
+ORDER BY NOTICE_DATE;
+
+
+-- noticeCount      공지사항 개수 검색
+SELECT COUNT(NOTICE_NUM) AS COUNT
+FROM NOTICE;
+
+
+-- noticeTsearchList	제목 키워드로 공지사항 리스트 조회
+SELECT NOTICE_NUM, NOTICE_TITLE, NOTICE_DATE
+FROM NOTICE
+WHERE NOTICE_TITLE LIKE '검색 키워드'
+ORDER BY NOTICE_DATE;
+
+
+-- noticeTsearchCount   제목 키워드로 공지사항을 검색했을 때 개수 조회
+SELECT COUNT(NOTICE_NUM) AS COUNT
+FROM NOTICE
+WHERE NOTICE_TITLE LIKE '검색 키워드';
+
+
+-- notice		공지사항 번호로 공지사항 조회
+SELECT NOTICE_NUM, NOTICE_TITLE, NOTICE_DATE, NOTICE_CONTENT
+FROM NOTICE
+WHERE NOTICE_NUM LIKE 공지사항 번호
+ORDER BY NOTICE_DATE;
+
+
+-- noticeSearchList     전체 검색에서 특정 키워드로 공지 리스트 조회
+SELECT NOTICE_NUM, NOTICE_TITLE, NOTICE_DATE
+FROM NOTICE
+WHERE NOTICE_TITLE LIKE '검색 키워드'
+   OR NOTICE_CONTENT LIKE '검색 키워드'
+ORDER BY NOTICE_DATE;
+
+
+-- noticeSearchCount    전체 검색에서 특정 키워드로 공지사항 검색했을 때 개수 조회
+SELECT COUNT(NOTICE_NUM) AS COUNT
+FROM NOTICE
+WHERE NOTICE_TITLE LIKE '검색 키워드'
+   OR NOTICE_CONTENT LIKE '검색 키워드';
+
+
+-- faqList		자주 묻는 질문 리스트
+SELECT FAQ_NUM, QCATEGORY_NUM, FAQ_QUESTION, FAQ_ANSWER
+FROM FAQ
+ORDER BY FAQ_DATE;
+
+
+-- faqCount     자주 묻는 질문 개수 조회
+SELECT COUNT(FAQ_NUM) AS COUNT
+FROM FAQ;
+
+
+-- faqSearchList	자주 묻는 질문 카테고리 별 리스트 조회
+SELECT FAQ_NUM, QCATEGORY_NUM, FAQ_QUESTION, FAQ_ANSWER
+FROM FAQ
+WHERE QCATEGORY_NUM LIKE '카테고리 번호'
+ORDER BY FAQ_DATE;
+
+
+-- faqSearchCount   자주 묻는 질문 카테고리별 개수 조회
+SELECT COUNT(FAQ_NUM) AS COUNT
+FROM FAQ
+WHERE QCATEGORY_NUM LIKE '카테고리 번호';
+
+
+-- questionInsert	질문 신규 등록
+INSERT INTO QUESTION(QUESTION_NUM, QCATEGORY_NUM, QUESTION_TITLE, QUESTION_CONTENT, SIGN_NUM)
+VALUES(QUESTION_SEQ.NEXTVAL, 질문카테고리 번호, '질문제목', '질문내용', 등록번호);
+
+
+-- answerCount		특정 회원의 질문 중 처리 완료 되었는데 미확인한 질문의 갯수
+SELECT COUNT(ANSWER_NUM) AS COUNT
+FROM ANSWER A JOIN QUESTION Q
+              ON A.QUESTION_NUM = Q.QUESTION_NUM
+WHERE Q.SIGN_NUM = '등록번호'
+  AND A.ANSWER_CHECK IS NULL;
+-- ▼ 뷰 조회문 (VIEW_QNA)
+SELECT COUNT(*)
+FROM VIEW_QNA
+WHERE ANSWER_CHECK IS NULL;
+
+
+-- answerCheckUpdate	질문 확인일자 수정
+UPDATE ANSWER
+SET ANSWER_CHECK = SYSDATE
+WHERE ANSER_NUM = '답변번호';

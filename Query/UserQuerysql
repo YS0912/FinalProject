@@ -1,0 +1,167 @@
+-- ▼ UserQuery
+
+-- login    아이디와 비밀번호 일치 여부 확인하여 등록번호 조회
+SELECT SIGN_NUM
+FROM USERS
+WHERE USER_ID = '아이디'
+  AND USER_PW = CRYPTPACK.DECRYPT('비밀번호', '비밀번호');
+
+
+-- searchId		아이디 등록 여부 확인 (중복 확인용)
+SELECT COUNT(*)
+FROM USERS
+WHERE USER_ID = '아이디';
+
+
+-- searchName		닉네임 등록 여부 확인 (중복 확인용)
+SELECT COUNT(*)
+FROM USERS
+WHERE USER_NAME = '닉네임';
+
+
+-- searchEmail		이메일 등록 여부 확인 (중복 확인용)
+SELECT COUNT(*)
+FROM USERS
+WHERE USER_EMAIL = '이메일';
+
+
+-- pwUpdate		새로운 비밀번호 입력 기능
+UPDATE USERS
+SET USER_PW = '비밀번호'
+WHERE SIGN_NUM = 등록번호;
+
+
+-- insert			회원가입
+INSERT INTO SIGN_NUMBER(SIGN_NUM) VALUES(SIGN_NUMBER_SEQ.NEXTVAL);
+INSERT INTO USERS(USER_NUM, SIGN_NUM, USER_ID, USER_PW, USER_NAME, USER_TEL, USER_EMAIL, GENDER_NUM, USER_BIRTH)
+VALUES(USERS_SEQ.NEXTVAL, 등록번호, '아이디', '비밀번호', '닉네임', '전화번호', '이메일', 성별번호, '생일');
+-- ▼ 프로시저 실행문 (PRC_USER_INSERT)
+EXEC PRC_USER_INSERT('아이디', '비밀번호', '닉네임', '전화번호', '이메일', 성별번호, '생년월일');
+
+-- (지역 입력한 횟수만큼 반복)
+INSERT INTO FAVOR_REGION(FREGION_NUM, SIGN_NUM, REGION_NUM) VALUES(FAVOR_REGION_SEQ.NEXTVAL, 등록번호, 지역번호);
+
+-- (카테고리 입력한 횟수만큼 반복)
+INSERT INTO FAVOR_CATEGORY(FCATEGORY_NUM, SIGN_NUM, TCATEGORY_NUM) VALUES(FAVOR_CATEGORY_SEQ.NEXTVAL, 등록번호, 카테고리번호);
+
+
+-- userSearch		특정 등록번호를 사용해서 회원 정보를 조회
+SELECT U.USER_NAME AS USER_NAME, U.USER_ID AS USER_ID, U.NVL(USER_INTRO, '안녕하세요.') AS USER_INTRO, U.USER_EMAIL AS USER_EMAIL, U.USER_TEL AS USER_TEL
+     , G.GENDER_NAME AS USER_GENDER, U.SIGN_NUM AS SIGN_NUM
+FROM USERS U JOIN GENDER G
+           ON U.GENDER_NUM = G.GENDER_NUM;
+-- ▼ 뷰 조회문 (VIEW_USERS_GENDER)
+SELECT USER_NAME, USER_ID, USER_INTRO, USER_EMAIL, USER_TEL, USER_GENDER
+FROM VIEW_USERS_GENDER
+WHERE SIGN_NUM = 등록번호;
+
+
+-- fregionSearch    특정 등록번호를 사용해서 관심지역 조회
+SELECT R.REGION_NAME AS FREGION_NAME, FR.SIGN_NUM AS SIGN_NUM
+FROM FAVOR_REGION FR JOIN REGION R
+                     ON FR.REGION_NUM = R.REGION_NUM;
+-- ▼ 뷰 조회문 (VIEW_FREIGON_SEARCH)
+SELECT FREGION_NAME, SIGN_NUM
+FROM VIEW_FREIGON_SEARCH
+WHERE SIGN_NUM = 등록번호;
+
+-- fcategorySearch  특정 등록번호를 사용해서 관심카테고리 조회
+SELECT TC.TCATEGORY_NAME AS FCATEGORY_NAME, FC.SIGN_NUM AS SIGN_NUM
+FROM FAVOR_CATEGORY FC JOIN TRAVEL_CATEGORY TC
+     ON FC.TCATEGORY_NUM = TC.TCATEGORY_NUM;
+-- ▼ 뷰 조회문 (VIEW_FCATEGORY_SEARCH)
+SELECT FCATEGORY_NAME, SIGN_NUM
+FROM VIEW_FCATEGORY_SEARCH
+WHERE SIGN_NUM = 등록번호;
+
+
+-- update	 	나의정보 수정
+UPDATE USERS
+SET USER_NAME = '닉네임'
+  , USER_INTRO = '자기소개'
+  , USER_EMAIL = '이메일'
+  , USER_TEL = '전화번호'
+  , GENDER_NUM = '성별'
+WHERE SIGN_NUM = 등록번호;
+
+
+-- updateProfile    프사 수정
+UPDATE USERS
+SET USER_PROFILE = '서버경로'
+WHERE SIGN_NUM = 등록번호;
+
+
+-- fcategoryUpdate  관심카테고리 수정
+UPDATE FAVOR_CATEGORY
+SET TCATEGORY_NUM = '여행카테고리 번호'
+WHERE SIGN_NUM LIKE 등록번호;
+
+
+-- fregionUpdate    관심지역 수정
+UPDATE FAVOR_REGION
+SET REGION_NUM = '지역 번호'
+WHERE SIGN_NUM = 등록번호;
+
+
+-- delete	 	회원탈퇴
+INSERT INTO QUIT_USER(QUIT_NUM, SIGN_NUM, QUIT_ID) VALUES(QUIT_USER_SEQ.NEXTVAL, 등록번호, '아이디');
+DELETE FROM USERS WHERE SIGN_NUM LIKE 등록번호;
+-- ▼ 프로시저 실행문 (PRC_USER_QUIT)
+EXEC PRC_USER_QUIT(등록번호);
+
+
+-- reportList 		특정 등록번호가 신고한 내역 조회 (마이페이지)
+-- ▼ 뷰 조회문 (VIEW_REPORTLIST)
+SELECT TYPE, REPORT_NUM, ARTICLE, TITLE, REPORTER, REASON, REPORT_DATE, STATUS_NUM, STATUS_DATE
+FROM VIEW_REPORTLIST
+WHERE REPORTER = 등록번호
+ORDER BY REPORT_DATE;
+
+
+-- warningCount         특정 등록번호가 받은 경고 횟수 조회 (정지 됐는가 여부 확인 / 알림 표시)
+SELECT COUNT(*) AS COUNT
+FROM VIEW_REPORTLIST
+WHERE REPORTER = 등록번호
+  AND STATUS = 1;                                      -- 인정
+
+
+-- fakeWarningCount        특정 등록번호가 허위 신고로 받은 경고 횟수 조회 (정지 됐는가 여부 확인 / 알림 표시)
+SELECT COUNT(*) AS COUNT
+FROM VIEW_REPORTLIST               -- reportList에서 만든 뷰
+WHERE REPORTER = 등록번호
+  AND STATUS = 3;               -- 허위 신고
+   
+SELECT * 
+FROM VIEW_REPORTLIST;
+
+
+-- cwarningCancelInsert   특정 신고처리 번호에 소명이 들어와 종류 번호를 수정 (카드)
+INSERT INTO CWARNING_CANCEL(CCANCEL_NUM, ADMIN_NUM, CCANCEL_DATE, CSTATUS_NUM, REASON_NUM, CCANCEL_MEMO)
+VALUES(CWARNING_CANCEL_SEQ.NEXTVAL, 관리자번호, SYSDATE, 신고처리번호, 사유번호, '메모');
+
+-- bwarningCancelInsert   특정 신고처리 번호에 소명이 들어와 종류 번호를 수정 (책)
+INSERT INTO BWARNING_CANCEL(BCANCEL_NUM, ADMIN_NUM, BCANCEL_DATE, BSTATUS_NUM, REASON_NUM, BCANCEL_MEMO)
+VALUES(BWARNING_CANCEL_SEQ.NEXTVAL, 관리자번호, SYSDATE, 신고처리번호, 사유번호, '메모');
+
+-- cowarningCancelInsert   특정 신고처리 번호에 소명이 들어와 종류 번호를 수정 (댓글)
+INSERT INTO COWARNING_CANCEL(COCANCEL_NUM, ADMIN_NUM, COCANCEL_DATE, COSTATUS_NUM, REASON_NUM, COCANCEL_MEMO)
+VALUES(COWARNING_CANCEL_SEQ.NEXTVAL, 관리자번호, SYSDATE, 신고처리번호, 사유번호, '메모');
+
+
+-- bStatusCheckUpdate 특정 신고처리 번호의 확인 일자 수정 (여행책)
+UPDATE BREPORT_STATUS
+SET BSTATUS_CHECK = SYSDATE
+WHERE STATUS_DATE < SYSDATE
+     AND BSTATUS_CHECK IS NULL;
+
+-- cStatusCheckUpdate 특정 신고처리 번호의 확인 일자 수정 (카드)
+UPDATE CREPORT_STATUS
+SET CSTATUS_CHECK = SYSDATE
+WHERE STATUS_DATE < SYSDATE
+  AND CSTATUS_CHECK IS NULL;
+  
+-- coStatusCheckUpdate 특정 신고처리 번호의 확인 일자 수정 (댓글)
+UPDATE COREPORT_STATUS
+SET COSTATUS_CHECK = SYSDATE
+WHERE STATUS_DATE < SYSDATE
+  AND COSTATUS_CHECK IS NULL;
